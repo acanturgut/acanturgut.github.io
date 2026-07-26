@@ -160,59 +160,87 @@ keeping track.
 
 <hr>
 
-<h2 id="webrtc">WebRTC inside a Flutter app</h2>
+<h2 id="webrtc">Calls in Flutter: CallKeep for the UI, WebRTC for the media</h2>
 <p class="dim">2025-07-08</p>
 <p>
 At Done we had a two-sided marketplace, customers on one side and professional
 installers on the other, and a lot of jobs died in the gap between "I think I
-need this" and someone actually turning up. A quick video call would have
-settled most of them in three minutes. So we put the call inside the app.
+need this" and someone actually turning up. A quick video call settles most of
+that in three minutes. So we put calls inside the app.
 </p>
 <p>
-The requirement that shaped everything: it had to be the same Flutter codebase
-on web, iOS and Android. That ruled out a lot of the nicer-looking native SDKs
-and pointed straight at WebRTC.
+The naive version of this is a WebRTC connection and a screen in your app that
+says someone is calling. It works in a demo and it fails in real life, because
+nobody is sitting inside your app waiting. The phone is in a pocket, locked. An
+in-app screen nobody sees is not a ringing phone.
+</p>
+<p>
+So the work split in two. CallKeep handles the call as far as the operating
+system is concerned, and WebRTC only shows up once someone has actually
+answered.
 </p>
 <pre>
-  customer app                              installer app
-       |                                          |
-       |---- offer / answer / ICE ---> signalling <---|
-       |         (our server, websockets)          |
-       |                                          |
-       +=========== media, peer to peer ==========+
-                          |
-                    (TURN relay when
-                     the direct path fails)
+  caller                                          callee
+    |                                               |
+    |-- start call --> our server                   |
+    |                     |                         |
+    |                     +-- push -----------> device wakes
+    |                                               |
+    |                                          CallKeep
+    |                                          (CallKit on iOS,
+    |                                           ConnectionService
+    |                                           on Android)
+    |                                               |
+    |                                     native ringing UI,
+    |                                     answer from the lock
+    |                                     screen, shows in the
+    |                                     phone's call history
+    |                                               |
+    |                                          [ answered ]
+    |                                               |
+    |<========== WebRTC media, peer to peer ========>|
 </pre>
 <p>
-The thing that surprises people is how little of WebRTC is the video. The media
-path mostly takes care of itself. What you actually build is the boring part on
-the left: signalling. Who is calling whom, is the other side even awake, what
-happens when someone rejects, what happens when someone's train goes into a
-tunnel mid-call. None of that is in the spec. All of it is your problem.
+That's the part I'd underestimated. The valuable thing CallKeep buys you isn't a
+prettier screen, it's that the OS now treats this as a call. It rings properly.
+It interrupts. It survives the app being backgrounded or killed. It appears in
+the phone's own call history, and it does the right thing when a real phone call
+arrives in the middle of yours.
 </p>
 <p>
-Three things cost us the most time:
+What cost us the most time:
 </p>
 <ul>
-  <li><strong>You need a TURN server.</strong> Peer to peer is the happy path
-      and it fails constantly in the real world, behind carrier NAT, behind
-      corporate wifi. Budget for the relay from day one rather than discovering
-      it when a customer on 4G can't connect.</li>
-  <li><strong>Permissions and lifecycle differ per platform.</strong> The
-      Flutter code was shared, the plumbing around camera permissions,
-      backgrounding and the browser's autoplay rules was not. That's where the
-      platform-specific code ended up living.</li>
-  <li><strong>Handle the ugly states first.</strong> Rejected, busy, dropped,
-      reconnecting. The happy path demos beautifully in the office and is maybe
-      a third of the actual work.</li>
+  <li><strong>iOS is strict about the push.</strong> A VoIP push has to be
+      reported to CallKit essentially immediately, and if you take the push and
+      don't report a call, the system stops being generous with your app. You do
+      not get to be lazy on that path, and it's awkward to test because it only
+      really misbehaves on a real device in a real state.</li>
+  <li><strong>Two platforms, two call models.</strong> CallKeep gives you one
+      Flutter API, but CallKit and ConnectionService disagree about permissions,
+      about what happens on the lock screen, and about the exact ordering of
+      events when someone answers. Most of our platform-specific code ended up
+      living right here.</li>
+  <li><strong>You still need a TURN server.</strong> Peer to peer is the happy
+      path and it fails constantly in the real world, behind carrier NAT and
+      behind corporate wifi. Budget for the relay on day one instead of finding
+      out when a customer on 4G can't connect.</li>
+  <li><strong>The ugly states are the actual work.</strong> Declined, busy,
+      dropped, answered on another device, reconnecting, answered after the
+      caller already gave up. The happy path demos beautifully in the office and
+      is maybe a third of the job.</li>
 </ul>
 <p>
-Worth it, though. Later the same peer-to-peer plumbing turned out to be exactly
-what I needed for the file sharing and calls in
+The general lesson I took from it: a call feature is two separate problems that
+look like one. Getting the media flowing is mostly solved by WebRTC. Convincing
+a phone in someone's pocket that it should ring is a different problem entirely,
+and that's the half that decides whether anyone ever picks up.
+</p>
+<p>
+The media half came back around later. The same peer-to-peer plumbing is what I
+used for file sharing and calls in
 <a href="https://tabtasker.com">TabTasker</a>, where the whole point is that
-nothing touches a server. Learn WebRTC once for a marketplace feature, reuse it
-years later to build something privacy-first.
+nothing touches a server.
 </p>
 
 <hr>
