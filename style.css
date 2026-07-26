@@ -1,0 +1,41 @@
+html { color-scheme: dark; }
+
+body {
+  background: #000;
+  color: #c8c8c8;
+  font: 15px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  max-width: 60ch;
+  margin: 0 auto;
+  padding: 4rem 1.25rem 6rem;
+}
+
+img.me {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+h1 { font-size: 15px; color: #fff; margin: 0; }
+h2 { font-size: 15px; color: #fff; margin: 2.5rem 0 0.75rem; font-weight: normal; }
+h2::before { content: "## "; color: #555; }
+h3 { font-size: 15px; color: #fff; margin: 1.75rem 0 0.35rem; font-weight: normal; }
+
+p, ul { margin: 0 0 0.9rem; }
+ul { list-style: none; padding: 0; }
+li { padding-left: 1.5rem; text-indent: -1.5rem; }
+li::before { content: "- "; color: #555; }
+
+a { color: #fff; text-decoration: none; border-bottom: 1px solid #444; }
+a:hover { border-bottom-color: #fff; }
+
+.dim { color: #777; }
+
+nav { margin-bottom: 2.5rem; }
+nav a { margin-right: 1.25rem; }
+
+hr { border: 0; border-top: 1px solid #222; margin: 3rem 0; }
+
+/* ponytail: single stylesheet for both pages; split when a third page needs
+   something different. */

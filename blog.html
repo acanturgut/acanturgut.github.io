@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blog &middot; Can Turgut</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>blog</h1>
+
+<nav>
+  <a href="index.html">home</a>
+  <a href="cv.pdf">cv</a>
+  <a href="https://github.com/acanturgut">github</a>
+</nav>
+
+<!-- ponytail: posts inline, newest first. Split into per-post files when one
+     needs its own URL or the page gets long. -->
+
+<h2>Why I built tt</h2>
+<p class="dim">2026-07-26</p>
+<p>
+I kept four coding agents running at once &mdash; Claude Code here, Codex there,
+Cursor in a third tab &mdash; and spent more time hunting for the right terminal
+than reading what any of them wrote. Which one was still working? Which one had
+quietly exited twenty minutes ago? I'd lose a session by closing the wrong window.
+</p>
+<p>
+So I built <a href="https://github.com/acanturgut/tt">tt</a>: a desktop app that
+puts every coding-agent CLI in one place. Add a project folder, spawn an agent in
+any directory, and they tile side by side automatically. Each tile gets a live
+activity dot (working / idle / exited) and a workflow status you set yourself
+&mdash; planning, in progress, in review, done &mdash; which colors the tile so
+you can see the state of everything at a glance. Click a tile to zoom into it.
+</p>
+<p>
+Two decisions mattered. First, agents run inside tmux, so sessions survive
+closing and restarting the app; losing an hour of context to a stray Cmd-Q was
+the thing that annoyed me most. Second, it doesn't wrap the agents or try to be
+smart about them &mdash; it's Tauri plus xterm.js, real terminals, whatever CLI
+you have on your PATH. Claude Code, Codex, Cursor, Gemini, opencode, Antigravity,
+or just a shell.
+</p>
+<p>
+It's macOS-only for now and the build is unsigned, so first launch needs a
+right-click &rarr; Open. Source and releases are
+<a href="https://github.com/acanturgut/tt">on GitHub</a>.
+</p>
+
+</body>
+</html>
