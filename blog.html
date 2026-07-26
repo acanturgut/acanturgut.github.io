@@ -19,34 +19,254 @@
 <!-- ponytail: posts inline, newest first. Split into per-post files when one
      needs its own URL or the page gets long. -->
 
-<h2>Why I built tt</h2>
-<p class="dim">2026-07-26</p>
+<h2 id="tt">tt is open now</h2>
+<p class="dim">2026-07-18</p>
 <p>
-I kept four coding agents running at once &mdash; Claude Code here, Codex there,
-Cursor in a third tab &mdash; and spent more time hunting for the right terminal
-than reading what any of them wrote. Which one was still working? Which one had
-quietly exited twenty minutes ago? I'd lose a session by closing the wrong window.
+I've been building this one quietly for a while, using it every day on my own
+work before showing it to anyone. It's in good enough shape now that I'd rather
+have people in it than keep polishing alone, so it's open to friends and to
+anyone who wants to try it.
 </p>
 <p>
-So I built <a href="https://github.com/acanturgut/tt">tt</a>: a desktop app that
-puts every coding-agent CLI in one place. Add a project folder, spawn an agent in
-any directory, and they tile side by side automatically. Each tile gets a live
-activity dot (working / idle / exited) and a workflow status you set yourself
-&mdash; planning, in progress, in review, done &mdash; which colors the tile so
-you can see the state of everything at a glance. Click a tile to zoom into it.
+The problem it solves is embarrassingly simple. I had four coding agents running
+at once, Claude Code here, Codex there, Cursor in a third tab, and I spent more
+time hunting for the right terminal than reading what any of them wrote. Which
+one was still working? Which one had quietly exited twenty minutes ago? Twice I
+killed an hour of context by closing the wrong window.
 </p>
 <p>
-Two decisions mattered. First, agents run inside tmux, so sessions survive
-closing and restarting the app; losing an hour of context to a stray Cmd-Q was
-the thing that annoyed me most. Second, it doesn't wrap the agents or try to be
-smart about them &mdash; it's Tauri plus xterm.js, real terminals, whatever CLI
-you have on your PATH. Claude Code, Codex, Cursor, Gemini, opencode, Antigravity,
-or just a shell.
+So tt puts them all in one place. Add a project folder, spawn an agent in any
+directory, and they tile themselves:
+</p>
+<img class="shot" src="tt.jpg" alt="tt with three agents tiled side by side: two Claude Code sessions and one Codex session">
+<p>
+Three agents there, named otter, heron and marlin. Two are Claude Code, one is
+Codex. Each tile carries its own status chip, effort level and token count, so
+the state of the whole workspace is one glance instead of four tab switches.
+</p>
+<pre>
+  +-- tt --------------------------------------------------+
+  |            [ message agents ................. all 3 ]  |
+  +----------+--------------+--------------+------+--------+
+  | projects | otter        | heron        | marlin|  rail |
+  |          | claude code  | claude code  | codex |       |
+  |  tt/     | * working    | * idle       | * work|  #1 o |
+  |  site/   | [in progress]| [in review]  | [plan]|  #2 o |
+  |  files   |              |              |       |  #3 o |
+  +----------+--------------+--------------+------+--------+
+</pre>
+<p>
+That bar across the top sends one message to every agent at once, which turned
+out to be the feature I use most. "Pull main and rebase" to all three beats
+typing it three times.
 </p>
 <p>
-It's macOS-only for now and the build is unsigned, so first launch needs a
-right-click &rarr; Open. Source and releases are
-<a href="https://github.com/acanturgut/tt">on GitHub</a>.
+Two decisions did most of the work. First, agents run inside tmux:
+</p>
+<pre>
+  tt  --spawn-->  tmux session  --runs-->  agent CLI
+                       |
+                       +--> survives closing the app
+                       +--> survives restarting the app
+                       +--> reattach and the scrollback is still there
+</pre>
+<p>
+Losing an hour of context to a stray Cmd-Q was the thing that annoyed me most,
+so that had to go away first.
+</p>
+<p>
+Second, tt doesn't wrap the agents or try to be clever about them. It's Tauri
+plus xterm.js, real terminals running whatever CLI is on your PATH. Claude Code,
+Codex, Cursor, Gemini, opencode, Antigravity, or just a shell. Every time I was
+tempted to parse an agent's output and do something smart with it, I stopped.
+The agents change weekly. A wrapper would be broken by Thursday.
+</p>
+<p>
+It's macOS only for now, and the build is unsigned, so the first launch needs a
+right-click then Open. Source and releases are
+<a href="https://github.com/acanturgut/tt">on GitHub</a>. If you try it and
+something annoys you, open an issue, that's the whole point of putting it out.
+</p>
+
+<hr>
+
+<h2 id="agents">Running Opus and Codex together</h2>
+<p class="dim">2026-06-21</p>
+<p>
+The question I get most about agentic development is which model to use. I think
+that's the wrong question. The models are all good enough now that the
+interesting part is what you ask each one to do.
+</p>
+<p>
+What settled for me is splitting the work by how expensive a mistake is. Opus
+plans and reviews. Codex writes the code. Planning and reviewing are where being
+wrong costs you a day; implementation is where being wrong costs you a re-run.
+</p>
+<pre>
+      plan
+        |  Opus. what are we building, what breaks, what order.
+        v
+   +----------+
+   | spec +   |  written down, in the repo, not in a chat window
+   | task list|
+   +----------+
+        |
+        +---> Codex ---> task A ---> tests
+        +---> Codex ---> task B ---> tests
+        +---> Codex ---> task C ---> tests
+        |
+        v
+      review
+        |  Opus. read the diff like it came from a stranger.
+        v
+      merge
+</pre>
+<p>
+The thing that makes this work is the spec in the middle. Not a long document,
+usually a page: what we're building, what it must not break, and the tasks in
+the order they should happen. It lives in the repo. Every agent reads the same
+one, which means I stop being the message bus between them.
+</p>
+<p>
+The failure mode I hit early was letting a planning conversation run straight
+into implementation. The agent is agreeable, you're excited, and forty minutes
+later there's a thousand-line diff built on an assumption you never actually
+checked. Writing the plan down first is a forcing function. If I can't write it
+in a page, I don't understand it yet, and no amount of model quality fixes that.
+</p>
+<p>
+A few things I've settled on:
+</p>
+<ul>
+  <li><strong>Riskiest part first.</strong> If something is going to sink the
+      approach, I want to know on day one, not after the easy 80% is built and
+      I'm attached to it.</li>
+  <li><strong>Thin slice running early.</strong> One path working end to end
+      beats six components that have never met. It also gives the agents
+      something real to pattern-match against.</li>
+  <li><strong>Review the diff, not the conversation.</strong> The chat log is
+      persuasive and the diff is the truth. I read it as if a stranger sent it,
+      because effectively one did.</li>
+  <li><strong>Tests are the contract.</strong> This is the part I refuse to
+      shortcut. An agent will happily tell you it's done. A failing test won't.</li>
+</ul>
+<p>
+None of this is exotic. It's mostly the same discipline that made human teams
+work, applied to collaborators who type faster and have no memory. Which is also
+why I ended up building <a href="#tt">tt</a>, because once you're running three
+of them at once, the bottleneck stops being the models and starts being you
+keeping track.
+</p>
+
+<hr>
+
+<h2 id="webrtc">WebRTC inside a Flutter app</h2>
+<p class="dim">2025-07-08</p>
+<p>
+At Done we had a two-sided marketplace, customers on one side and professional
+installers on the other, and a lot of jobs died in the gap between "I think I
+need this" and someone actually turning up. A quick video call would have
+settled most of them in three minutes. So we put the call inside the app.
+</p>
+<p>
+The requirement that shaped everything: it had to be the same Flutter codebase
+on web, iOS and Android. That ruled out a lot of the nicer-looking native SDKs
+and pointed straight at WebRTC.
+</p>
+<pre>
+  customer app                              installer app
+       |                                          |
+       |---- offer / answer / ICE ---> signalling <---|
+       |         (our server, websockets)          |
+       |                                          |
+       +=========== media, peer to peer ==========+
+                          |
+                    (TURN relay when
+                     the direct path fails)
+</pre>
+<p>
+The thing that surprises people is how little of WebRTC is the video. The media
+path mostly takes care of itself. What you actually build is the boring part on
+the left: signalling. Who is calling whom, is the other side even awake, what
+happens when someone rejects, what happens when someone's train goes into a
+tunnel mid-call. None of that is in the spec. All of it is your problem.
+</p>
+<p>
+Three things cost us the most time:
+</p>
+<ul>
+  <li><strong>You need a TURN server.</strong> Peer to peer is the happy path
+      and it fails constantly in the real world, behind carrier NAT, behind
+      corporate wifi. Budget for the relay from day one rather than discovering
+      it when a customer on 4G can't connect.</li>
+  <li><strong>Permissions and lifecycle differ per platform.</strong> The
+      Flutter code was shared, the plumbing around camera permissions,
+      backgrounding and the browser's autoplay rules was not. That's where the
+      platform-specific code ended up living.</li>
+  <li><strong>Handle the ugly states first.</strong> Rejected, busy, dropped,
+      reconnecting. The happy path demos beautifully in the office and is maybe
+      a third of the actual work.</li>
+</ul>
+<p>
+Worth it, though. Later the same peer-to-peer plumbing turned out to be exactly
+what I needed for the file sharing and calls in
+<a href="https://tabtasker.com">TabTasker</a>, where the whole point is that
+nothing touches a server. Learn WebRTC once for a marketplace feature, reuse it
+years later to build something privacy-first.
+</p>
+
+<hr>
+
+<h2 id="meilisearch">Full-text search in Flutter with Meilisearch</h2>
+<p class="dim">2023-01-24</p>
+<p>
+I gave this talk at Flutter Stockholm, and the demo repo is still
+<a href="https://github.com/acanturgut/done-flutter-full-text-search-with-meilisearch">up
+on GitHub</a>.
+</p>
+<p>
+The setup at Done was the usual one. Search was a database query with LIKE
+around it. It worked until it didn't: no typo tolerance, no ranking worth the
+name, and it got slower every month as the data grew. Users type "jhonson" and
+expect to find Johnson. A LIKE query has opinions about that.
+</p>
+<p>
+The two obvious options were Elasticsearch, which is powerful and a whole
+operational commitment, and rolling something ourselves, which is a trap. We
+went with Meilisearch. Typo tolerance out of the box, sane relevance defaults,
+and you can have it running locally in about a minute:
+</p>
+<pre>
+  brew install meilisearch
+  meilisearch
+</pre>
+<p>
+That last part matters more than it sounds. Search is one of those features
+where you need to feel the results to know if they're any good, and if trying an
+idea means provisioning a cluster, nobody tries any ideas.
+</p>
+<pre>
+  flutter app
+      |
+      |  query, keystroke by keystroke
+      v
+  meilisearch  ---> typo tolerance
+      |            ranking rules
+      |            filters + facets
+      v
+  results in a few ms
+</pre>
+<p>
+From Flutter it's just the <code>meilisearch</code> package and a client. You
+index your documents once, then query on every keystroke, because it's fast
+enough that debouncing is a nicety rather than a necessity. Search-as-you-type
+changes how the feature feels more than any ranking tweak does.
+</p>
+<p>
+The lesson I keep coming back to: search feels like a database problem, so
+people solve it in the database, and then spend a year fighting it. It's its own
+problem with its own tools. Reaching for one of those tools early is cheaper
+than the LIKE query you'll be apologising for later.
 </p>
 
 </body>
