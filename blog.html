@@ -45,15 +45,15 @@ Codex. Each tile carries its own status chip, effort level and token count, so
 the state of the whole workspace is one glance instead of four tab switches.
 </p>
 <pre>
-  +-- tt --------------------------------------------------+
-  |            [ message agents ................. all 3 ]  |
-  +----------+--------------+--------------+------+--------+
-  | projects | otter        | heron        | marlin|  rail |
-  |          | claude code  | claude code  | codex |       |
-  |  tt/     | * working    | * idle       | * work|  #1 o |
-  |  site/   | [in progress]| [in review]  | [plan]|  #2 o |
-  |  files   |              |              |       |  #3 o |
-  +----------+--------------+--------------+------+--------+
++-- tt ----------------------------------------------------------+
+|            [ message agents .................... all 3 ]       |
++----------+---------------+---------------+---------------+-----+
+| projects | otter         | heron         | marlin        | rail|
+|          | claude code   | claude code   | codex         |     |
+| tt/      | * working     | * idle        | * working     | #1 o|
+| site/    | [in progress] | [in review]   | [planning]    | #2 o|
+| files    |               |               |               | #3 o|
++----------+---------------+---------------+---------------+-----+
 </pre>
 <p>
 That bar across the top sends one message to every agent at once, which turned
@@ -68,7 +68,7 @@ Two decisions did most of the work. First, agents run inside tmux:
                        |
                        +--> survives closing the app
                        +--> survives restarting the app
-                       +--> reattach and the scrollback is still there
+                       +--> reattach, scrollback still there
 </pre>
 <p>
 Losing an hour of context to a stray Cmd-Q was the thing that annoyed me most,
