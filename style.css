@@ -47,6 +47,10 @@ pre {
 
 code { color: #fff; }
 
+ul.toc li { padding-left: 0; text-indent: 0; margin-bottom: 0.35rem; }
+ul.toc li::before { content: none; }
+ul.toc .dim { margin-right: 0.6rem; }
+
 /* screenshots break out wider than the text column */
 img.shot {
   display: block;
