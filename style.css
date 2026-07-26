@@ -12,7 +12,8 @@ body {
 img.me {
   width: 120px;
   display: block;
-  margin: 0 0 1rem -8px;
+  border-radius: 10px;
+  margin: 0 0 1.25rem;
 }
 
 h1 { font-size: 15px; color: #fff; margin: 0; }
